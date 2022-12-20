@@ -17,8 +17,6 @@ public class GraphicsDisplay extends JPanel {
     private boolean showAxis = true;
     private boolean firstlunc = true;
     private boolean showMarkers = true;
-    private boolean showArea = false;
-    private boolean Rotate = false;
     private boolean ShowExtremums = false;
 
     public void setShowExtremums(boolean showExtremums) {
@@ -102,15 +100,6 @@ public class GraphicsDisplay extends JPanel {
             }
         }
 
-        if(Rotate){
-            double tmp = maxX;
-            maxX = maxY;
-            maxY = tmp;
-            tmp = minX;
-            minX = minY;
-            minY = tmp;
-        }
-
         firstlunc = true;
         zoomToRegion(minX, maxY, maxX, minY);
     }
@@ -142,8 +131,6 @@ public class GraphicsDisplay extends JPanel {
         Paint oldPaint = canvas.getPaint();
         Font oldFont = canvas.getFont();
 
-        if (Rotate) DoRotate(canvas);
-        if(showArea) paintArea(canvas);
         if (showAxis) paintAxis(canvas);
         paintGraphics(canvas);
 
@@ -206,8 +193,13 @@ public class GraphicsDisplay extends JPanel {
                 Point2D.Double corner = shiftPoint(center, 7, 7);
                 boolean sign = true;
 
-                if(Math.round(point[1]) % 2 == 1) {
-                    sign = false;
+                String strr = String.valueOf(graphicsData[i_n][1]);
+                for(int i = 0; i < strr.length() && strr.charAt(i) != '.'; i++){
+                    int val = Integer.valueOf(strr.charAt(i));
+                    if(val % 2 == 1){
+                        sign = false;
+                        break;
+                    }
                 }
 
                 canvas.setColor(Color.BLACK);
@@ -234,7 +226,7 @@ public class GraphicsDisplay extends JPanel {
                         int counter = 0;
                         for (int i_m = 0; i_m < string.length(); i_m++) {
                             if (string.charAt(i_m) == '.') {
-                                counter++;
+                                counter = 1;
                             }
                             if (counter != 0) {
                                 counter++;
@@ -286,87 +278,6 @@ public class GraphicsDisplay extends JPanel {
             canvas.drawString(label, (float)(point.getX() + 5.0), (float)(point.getY() - bounds.getHeight()));
         }
     }
-
-    protected void paintArea(Graphics2D canvas) {
-        canvas.setStroke(new BasicStroke(2));
-        Double mainY = xyToPoint(0, 0).y;
-        FontRenderContext context = canvas.getFontRenderContext();
-
-        int i = 0;
-        //System.out.println(mainY);
-        for(; i < graphicsData.length - 1; i++){
-            if(xyToPoint(graphicsData[i][0], graphicsData[i][1]).y > mainY){
-                break;
-            }
-        }
-
-        for(; i < graphicsData.length - 2; i++){
-            canvas.setColor(Color.GREEN);
-            Double ValueOfarea = 0.d;
-            Point2D.Double beginSpot = xyToPoint(graphicsData[i][0], graphicsData[i][1]);
-            GeneralPath area = new GeneralPath();
-            for(; i < graphicsData.length - 2; i++) {
-                if (xyToPoint(graphicsData[i][0], graphicsData[i][1]).y < mainY) {
-                    beginSpot = xyToPoint(graphicsData[i][0], graphicsData[i][1]);
-                    area.moveTo(beginSpot.x, beginSpot.y);
-                    break;
-                }
-            }
-            Point2D.Double endSpot = xyToPoint(graphicsData[i][0], graphicsData[i][1]);
-            Point2D.Double highestPoint = xyToPoint(graphicsData[i][0], graphicsData[i][1]);
-            for(; i < graphicsData.length - 2; i++) {
-                if(highestPoint.y > xyToPoint(graphicsData[i][0], graphicsData[i][1]).y){
-                    highestPoint = xyToPoint(graphicsData[i][0], graphicsData[i][1]);
-                }
-                if (xyToPoint(graphicsData[i][0], graphicsData[i][1]).y > mainY) {
-                    i--;
-                    endSpot = xyToPoint(graphicsData[i][0], graphicsData[i][1]);
-                    break;
-                }
-                ValueOfarea += ((graphicsData[i - 1][1] + graphicsData[i][1]) / 2) *
-                        (graphicsData[i][0] - graphicsData[i - 1][0]);
-                Point2D.Double ptr = xyToPoint(graphicsData[i][0], graphicsData[i][1]);
-                area.lineTo(ptr.x, ptr.y);
-            }
-            boolean sign = true;
-            for(int i_n = i; i_n < graphicsData.length - 2; i_n++){
-                if(xyToPoint(graphicsData[i_n][0], graphicsData[i_n][1]).y > mainY){
-                    sign = false;
-                }
-            }
-            if(!sign) {
-
-                area.moveTo(endSpot.x, endSpot.y);
-                area.moveTo(beginSpot.x, beginSpot.y);
-                area.closePath();
-                canvas.draw(area);
-                canvas.fill(area);
-
-                canvas.setColor(Color.BLUE);
-                canvas.setFont(areaFont);
-                String strArea = String.valueOf(ValueOfarea);
-                String finalArea = "";
-                for(int j = 0; j < 5; j++){
-                    finalArea += strArea.charAt(j);
-                }
-                Rectangle2D bounds = areaFont.getStringBounds(finalArea, context);
-                Point2D.Double labelPos = new Point2D.Double();
-                labelPos.x = (float)(beginSpot.x + (endSpot.x - beginSpot.x) / 4 - 14);
-                labelPos.y = (float)(highestPoint.y - highestPoint.y / 16);
-                if(Rotate){
-                    labelPos.x = (float)(beginSpot.x + (endSpot.x - beginSpot.x) / 4 - 1);
-                    labelPos.y = (float)(highestPoint.y - highestPoint.y / 8);
-                }
-                if(Rotate){
-                    canvas.rotate(Math.PI / 2, labelPos.x, labelPos.y);
-                }
-                canvas.drawString(finalArea, (float)labelPos.x, (float)labelPos.y);
-                if(Rotate){
-                    canvas.rotate(3 * Math.PI / 2,  labelPos.x, labelPos.y);
-                }
-            }
-        }
-    }
     protected void paintAxis(Graphics2D canvas) {
         canvas.setStroke(axisStroke);
         canvas.setColor(Color.BLACK);
@@ -374,18 +285,10 @@ public class GraphicsDisplay extends JPanel {
         canvas.setFont(axisFont);
         FontRenderContext context = canvas.getFontRenderContext();
         if (minX<=0.0 && maxX>=0.0) {
-            if(Rotate){
-                canvas.draw(new Line2D.Double(xyToPoint(0, maxX),
-                        xyToPoint(0, minX)));
-            } else {
-                canvas.draw(new Line2D.Double(xyToPoint(0, maxY),
-                        xyToPoint(0, minY)));
-            }
+            canvas.draw(new Line2D.Double(xyToPoint(0, maxY),
+                    xyToPoint(0, minY)));
             GeneralPath arrow = new GeneralPath();
             Point2D.Double lineEnd = xyToPoint(0, maxY);
-            if(Rotate){
-                lineEnd = xyToPoint(0, maxX);
-            }
 
             arrow.moveTo(lineEnd.getX(), lineEnd.getY());
             arrow.lineTo(arrow.getCurrentPoint().getX()+5,
@@ -397,31 +300,17 @@ public class GraphicsDisplay extends JPanel {
             canvas.fill(arrow);
             Rectangle2D bounds = axisFont.getStringBounds("y", context);
             Point2D.Double labelPos = xyToPoint(0, maxY);
-            if(Rotate){
-                labelPos = xyToPoint(minX, 0);
-                canvas.rotate(Math.PI / 2, xyToPoint(0, 0).x, xyToPoint(0,0).y);
-            }
 
             canvas.drawString("y", (float)labelPos.getX() + 10,
                     (float)(labelPos.getY() - bounds.getY()));
-            if (Rotate){
-                canvas.rotate(3 * Math.PI / 2, xyToPoint(0, 0).x, xyToPoint(0,0).y);
-            }
         }
         if (minY<=0.0 && maxY>=0.0) {
-            if(Rotate){
-                canvas.draw(new Line2D.Double(xyToPoint(minY, 0),
-                        xyToPoint(maxY, 0)));
-            } else {
-                canvas.draw(new Line2D.Double(xyToPoint(minX, 0),
-                        xyToPoint(maxX, 0)));
-            }
+
+            canvas.draw(new Line2D.Double(xyToPoint(minX, 0),
+                    xyToPoint(maxX, 0)));
 
             GeneralPath arrow = new GeneralPath();
             Point2D.Double lineEnd = xyToPoint(maxX, 0);
-            if(Rotate){
-                lineEnd = xyToPoint(maxY, 0);
-            }
             arrow.moveTo(lineEnd.getX(), lineEnd.getY());
             arrow.lineTo(arrow.getCurrentPoint().getX()-20,
                     arrow.getCurrentPoint().getY()-5);
@@ -432,26 +321,12 @@ public class GraphicsDisplay extends JPanel {
             canvas.fill(arrow);
             Rectangle2D bounds = axisFont.getStringBounds("x", context);
             Point2D.Double labelPos = xyToPoint(maxX, 0);
-            if(Rotate){
-                labelPos = xyToPoint(0, maxY);
-                canvas.rotate(Math.PI / 2, xyToPoint(0, 0).x, xyToPoint(0,0).y);
-            }
             canvas.drawString("x", (float)(labelPos.getX() -
                     bounds.getWidth() - 10), (float)(labelPos.getY() + bounds.getY()) + 80);
-            if (Rotate){
-                canvas.rotate(3 * Math.PI / 2, xyToPoint(0, 0).x, xyToPoint(0,0).y);
-            }
             Point2D center = xyToPoint(0.025, 0.025);
             canvas.drawString("0", (int) center.getX(), (int) center.getY());
         }
     }
-
-    protected void DoRotate(Graphics2D canvas) {
-        Point2D.Double ptr = xyToPoint(0, 0);
-        canvas.rotate(3 * Math.PI / 2, ptr.x, ptr.y);
-        repaint();
-    }
-
     protected int findSelectedPoint(int x, int y) {
         if (graphicsData == null) {
             return -1;
@@ -493,13 +368,6 @@ public class GraphicsDisplay extends JPanel {
         repaint();
     }
 
-
-    public void setRotate(boolean rotate) {
-        Rotate = rotate;
-        displayGraphics(graphicsData, originalData);
-        repaint();
-    }
-
     public Double[][] getGraphicsData(){
         return graphicsData;
     }
@@ -508,10 +376,7 @@ public class GraphicsDisplay extends JPanel {
         repaint();
     }
 
-    public void setShowArea(boolean showArea){
-        this.showArea = showArea;
-        repaint();
-    }
+
     public void setShowMarkers(boolean showMarkers) {
         this.showMarkers = showMarkers;
         repaint();
